@@ -1,0 +1,2 @@
+### Why does the SafeERC20 program exist and when should it be used?
+SafeERC20 library exists because there are a number of wildly used ERC20 tokens (also known as "weird tokens") that are not fully compatible with standard, for example - don't return bool value on transfer calls, reverts on 0 amount transfers, etc. This library should be used in cases when tokens that the contract would be interacting with are unknown upfront, so their weird behavior could potentially break the contract.
