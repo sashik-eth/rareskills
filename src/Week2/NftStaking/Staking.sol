@@ -31,6 +31,8 @@ contract Staking is IERC721Receiver {
         return IERC721Receiver.onERC721Received.selector;
     }
 
+    // @notice Withdraw staked NFT
+    // @param tokenId Id of withdrawn NFT 
     function withdraw(uint256 tokenId) external {
         require(stakes[tokenId].staker == msg.sender, "Only NFT staker could withdraw");
         _claim(tokenId);
@@ -39,6 +41,8 @@ contract Staking is IERC721Receiver {
         emit Withdraw(msg.sender, tokenId);
     }
 
+    // @notice Claim collected rewards 
+    // @param tokenId Id of claiming NFT 
     function claim(uint256 tokenId) external {
         require(stakes[tokenId].staker == msg.sender, "Only NFT staker could claim");
         _claim(tokenId);
@@ -54,12 +58,10 @@ contract Staking is IERC721Receiver {
         // could be unchecked safely since math operations here could not realistic overflow
         unchecked {
             uint256 daysPassed = (block.timestamp - stakes[tokenId].lastClaimAt) / 1 days;
-            if (daysPassed > 0) {
-                uint256 collectedRewards = REWARDS_PER_DAY * daysPassed;
-                stakes[tokenId].lastClaimAt += uint96(daysPassed * 1 days);
-                token.mint(msg.sender, collectedRewards);
-                emit Claim(msg.sender, tokenId, collectedRewards);
-            }
+            uint256 collectedRewards = REWARDS_PER_DAY * daysPassed;
+            stakes[tokenId].lastClaimAt += uint96(daysPassed * 1 days);
+            token.mint(msg.sender, collectedRewards);
+            emit Claim(msg.sender, tokenId, collectedRewards);
         }
     }
 }

@@ -38,6 +38,8 @@ contract NFT is ERC721Royalty, Ownable2Step {
         _setDefaultRoyalty(receiver, feeNumerator);
     }
 
+    // @notice Withdraw collected eth or accidental sent funds 
+    // @param token address of withdrawn token, should be 0 for eth
     function withdraw(address token) external onlyOwner {
         if (token == address(0)) {
             msg.sender.call{value: (address(this).balance)}("");
@@ -46,11 +48,15 @@ contract NFT is ERC721Royalty, Ownable2Step {
         }
     }
 
+    // @notice Mint token and pay full price
     function mint() external payable {
         require(msg.value == FULL_PRICE, "Not enough eth");
         _safeMint(msg.sender, FULL_PRICE);
     }
 
+    // @notice Mint token and pay discount price
+    // @param index position in bitMap reserved for caller address
+    // @param merkleProof proof that caller address and index are in Merkle tree
     function mint(uint256 index, bytes32[] calldata merkleProof) external payable {
         require(msg.value == DISCOUNT_PRICE, "Not enough eth");
 
