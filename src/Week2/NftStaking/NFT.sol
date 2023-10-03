@@ -8,8 +8,6 @@ import {BitMaps} from "openzeppelin-contracts/contracts/utils/structs/BitMaps.so
 import {MerkleProof} from "openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 
 contract NFT is ERC721Royalty, Ownable2Step {
-    event Mint(address indexed receiver, uint256 indexed tokenId, uint256 price);
-
     uint256 public immutable MAX_SUPPLY;
     uint256 public immutable FULL_PRICE;
     uint256 public immutable DISCOUNT_PRICE;
@@ -17,6 +15,8 @@ contract NFT is ERC721Royalty, Ownable2Step {
 
     uint256 tokenId;
     BitMaps.BitMap bitMap;
+
+    event Mint(address indexed receiver, uint256 indexed tokenId, uint256 price);
 
     constructor(
         string memory name_,
@@ -34,11 +34,14 @@ contract NFT is ERC721Royalty, Ownable2Step {
         _setDefaultRoyalty(msg.sender, initFee);
     }
 
+    // @notice Set default royalty info
+    // @param receiver address that receive royalty
+    // @param feeNumerator numerator for fee calculation
     function setDefaultRoyalty(address receiver, uint96 feeNumerator) external onlyOwner {
         _setDefaultRoyalty(receiver, feeNumerator);
     }
 
-    // @notice Withdraw collected eth or accidental sent funds 
+    // @notice Withdraw collected eth or accidental sent funds
     // @param token address of withdrawn token, should be 0 for eth
     function withdraw(address token) external onlyOwner {
         if (token == address(0)) {

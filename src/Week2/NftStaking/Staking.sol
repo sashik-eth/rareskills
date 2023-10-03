@@ -11,14 +11,15 @@ contract Staking is IERC721Receiver {
         uint96 lastClaimAt;
     }
 
+    uint256 immutable REWARDS_PER_DAY;
+    IERC721 immutable nft;
+
+    Token public token;
+    mapping(uint256 => StakeInfo) stakes;
+
     event Stake(address indexed staker, uint256 indexed tokenId);
     event Claim(address indexed staker, uint256 indexed tokenId, uint256 amount);
     event Withdraw(address indexed staker, uint256 indexed tokenId);
-
-    uint256 immutable REWARDS_PER_DAY;
-    IERC721 immutable nft;
-    Token public token;
-    mapping(uint256 => StakeInfo) stakes;
 
     constructor(string memory tokenName, string memory tokenSymbol, IERC721 _nft, uint256 _rewardsPerDay) {
         nft = _nft;
@@ -26,13 +27,16 @@ contract Staking is IERC721Receiver {
         token = new Token(tokenName, tokenSymbol);
     }
 
+    // @notice Hook that allows stake NFT by direct transfer 
+    // @param from The address from which tokens transferred
+    // @param tokenId If of transferred token
     function onERC721Received(address, address from, uint256 tokenId, bytes calldata) external returns (bytes4) {
         _stake(from, tokenId);
         return IERC721Receiver.onERC721Received.selector;
     }
 
     // @notice Withdraw staked NFT
-    // @param tokenId Id of withdrawn NFT 
+    // @param tokenId Id of withdrawn NFT
     function withdraw(uint256 tokenId) external {
         require(stakes[tokenId].staker == msg.sender, "Only NFT staker could withdraw");
         _claim(tokenId);
@@ -41,8 +45,8 @@ contract Staking is IERC721Receiver {
         emit Withdraw(msg.sender, tokenId);
     }
 
-    // @notice Claim collected rewards 
-    // @param tokenId Id of claiming NFT 
+    // @notice Claim collected rewards
+    // @param tokenId Id of claiming NFT
     function claim(uint256 tokenId) external {
         require(stakes[tokenId].staker == msg.sender, "Only NFT staker could claim");
         _claim(tokenId);
