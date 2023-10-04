@@ -11,11 +11,11 @@ contract Staking is IERC721Receiver {
         uint96 lastClaimAt;
     }
 
-    uint256 immutable REWARDS_PER_DAY;
-    IERC721 immutable nft;
+    uint256 immutable public REWARDS_PER_DAY;
+    IERC721 immutable public nft;
 
     Token public token;
-    mapping(uint256 => StakeInfo) stakes;
+    mapping(uint256 => StakeInfo) public stakes;
 
     event Stake(address indexed staker, uint256 indexed tokenId);
     event Claim(address indexed staker, uint256 indexed tokenId, uint256 amount);
@@ -31,6 +31,7 @@ contract Staking is IERC721Receiver {
     // @param from The address from which tokens transferred
     // @param tokenId If of transferred token
     function onERC721Received(address, address from, uint256 tokenId, bytes calldata) external returns (bytes4) {
+        require(msg.sender == address(nft), "Wrong NFT");
         _stake(from, tokenId);
         return IERC721Receiver.onERC721Received.selector;
     }

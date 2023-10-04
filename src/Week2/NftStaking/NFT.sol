@@ -11,10 +11,10 @@ contract NFT is ERC721Royalty, Ownable2Step {
     uint256 public immutable MAX_SUPPLY;
     uint256 public immutable FULL_PRICE;
     uint256 public immutable DISCOUNT_PRICE;
-    bytes32 immutable MERKLE_ROOT;
+    bytes32 private immutable MERKLE_ROOT;
 
-    uint256 tokenId;
-    BitMaps.BitMap bitMap;
+    uint256 public tokenId;
+    BitMaps.BitMap private bitMap;
 
     event Mint(address indexed receiver, uint256 indexed tokenId, uint256 price);
 
@@ -54,7 +54,7 @@ contract NFT is ERC721Royalty, Ownable2Step {
     // @notice Mint token and pay full price
     function mint() external payable {
         require(msg.value == FULL_PRICE, "Not enough eth");
-        _safeMint(msg.sender, FULL_PRICE);
+        _internalMint(msg.sender, FULL_PRICE);
     }
 
     // @notice Mint token and pay discount price
@@ -69,14 +69,16 @@ contract NFT is ERC721Royalty, Ownable2Step {
         require(!BitMaps.get(bitMap, index), "Already minted with this proof");
         BitMaps.set(bitMap, index);
 
-        _safeMint(msg.sender, DISCOUNT_PRICE);
+        _internalMint(msg.sender, DISCOUNT_PRICE);
     }
 
-    function _safeMint(address receiver, uint256 price) internal override {
-        uint256 _tokenId = ++tokenId;
-        require(_tokenId <= MAX_SUPPLY, "Max supply reached");
+    function _internalMint(address receiver, uint256 price) internal {
+        unchecked {
+            uint256 _tokenId = ++tokenId;
+            require(_tokenId <= MAX_SUPPLY, "Max supply reached");
 
-        super._safeMint(receiver, _tokenId);
-        emit Mint(msg.sender, _tokenId, price);
+            _safeMint(receiver, _tokenId);
+            emit Mint(msg.sender, _tokenId, price);
+        }
     }
 }
