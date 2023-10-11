@@ -11,8 +11,8 @@ contract Staking is IERC721Receiver {
         uint96 lastClaimAt;
     }
 
-    uint256 immutable public REWARDS_PER_DAY;
-    IERC721 immutable public nft;
+    uint256 public immutable REWARDS_PER_DAY;
+    IERC721 public immutable nft;
 
     Token public token;
     mapping(uint256 => StakeInfo) public stakes;
@@ -27,7 +27,7 @@ contract Staking is IERC721Receiver {
         token = new Token(tokenName, tokenSymbol);
     }
 
-    // @notice Hook that allows stake NFT by direct transfer 
+    // @notice Hook that allows stake NFT by direct transfer
     // @param from The address from which tokens transferred
     // @param tokenId If of transferred token
     function onERC721Received(address, address from, uint256 tokenId, bytes calldata) external returns (bytes4) {
