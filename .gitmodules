@@ -10,3 +10,6 @@
 [submodule "lib/erc1363-payable-token"]
 	path = lib/erc1363-payable-token
 	url = https://github.com/vittominacori/erc1363-payable-token
+[submodule "lib/huffmate"]
+	path = lib/huffmate
+	url = https://github.com/huff-language/huffmate
