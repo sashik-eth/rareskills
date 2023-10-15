@@ -75,17 +75,17 @@ contract AmmTest is Test, IERC3156FlashBorrower {
         vm.assume(uint256(token0Mint) + swapAmount < type(uint112).max);
         vm.assume(swapAmount > 1 ether && swapAmount < token1Mint);
         testMintLp(address(this), token0Mint, token1Mint);
-        
+
         vm.assume(swapAmount < token0Mint);
         deal(address(token0), user, swapAmount);
         vm.startPrank(user);
         token0.transfer(address(pair), swapAmount);
-        
-        (uint256 r0, uint256 r1, ) = pair.getReserves();
-        
-        uint256 receiveAmount = token1Mint - ( r0 * r1 / (token0Mint + swapAmount)) - 2;
+
+        (uint256 r0, uint256 r1,) = pair.getReserves();
+
+        uint256 receiveAmount = token1Mint - (r0 * r1 / (token0Mint + swapAmount)) - 2;
         receiveAmount -= receiveAmount * 30 / 10000;
-   
+
         uint256 _balance = token1.balanceOf(user);
         pair.swap(0, receiveAmount, user);
         uint256 balance_ = token1.balanceOf(user);
@@ -158,10 +158,10 @@ contract AmmTest is Test, IERC3156FlashBorrower {
     }
 
     function testTwap() public {
-       testMintLp(address(this), 100 ether, 100 ether);
+        testMintLp(address(this), 100 ether, 100 ether);
         // price 1:1
         skip(1000);
-    
+
         deal(address(token0), user, 50 ether);
         vm.startPrank(user);
         token0.transfer(address(pair), 50 ether);
@@ -171,7 +171,6 @@ contract AmmTest is Test, IERC3156FlashBorrower {
         // price 1.5:0.66 = 2.27
 
         skip(1000);
- 
 
         token1.transfer(address(pair), res);
         pair.swap(1, 0, user);
@@ -181,7 +180,6 @@ contract AmmTest is Test, IERC3156FlashBorrower {
         emit log_uint(price0CumulativeLast / 2000); // (1.5/0.66 + 1 ) / 2 ~ 1.63
         emit log_uint(price1CumulativeLast / 2000); // (0.66/1.5 + 1 ) / 2 ~ 0.72
     }
-
 }
 
 contract BadReceiver {

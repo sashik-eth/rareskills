@@ -118,6 +118,11 @@ contract Pair is LPT, ReentrancyGuard, IERC3156FlashLender {
         return true;
     }
 
+    /**
+     * @notice  Mint new LP tokens
+     * @param   to  receiver of LPs
+     * @return  liquidity  amount of minted LPs
+     */
     function mint(address to) external nonReentrant returns (uint256 liquidity) {
         (uint112 _reserve0, uint112 _reserve1) = (reserve0, reserve1);
         uint256 balance0 = TOKEN0.balanceOf(address(this));
@@ -145,6 +150,12 @@ contract Pair is LPT, ReentrancyGuard, IERC3156FlashLender {
         emit Mint(msg.sender, amount0, amount1);
     }
 
+    /**
+     * @notice  Burn LP tokens
+     * @param   to tokens receiver address
+     * @return  amount0 amount of received token0
+     * @return  amount1 amount of received token1
+     */
     function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
         (uint112 _reserve0, uint112 _reserve1) = (reserve0, reserve1);
 
@@ -168,6 +179,12 @@ contract Pair is LPT, ReentrancyGuard, IERC3156FlashLender {
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
+    /**
+     * @notice  Swap tokens
+     * @param   amount0Out  Desired amount of token 0
+     * @param   amount1Out  Desired amount of token 1
+     * @param   to  Receiver address of swapped tokens
+     */
     function swap(uint256 amount0Out, uint256 amount1Out, address to) external nonReentrant {
         if (amount0Out == 0 && amount1Out == 0) revert ZeroOutputs();
         (uint112 _reserve0, uint112 _reserve1) = (reserve0, reserve1);
