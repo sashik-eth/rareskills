@@ -41,6 +41,14 @@ contract NftStakingTest is Test {
         assertTrue(nft.balanceOf(user) == amount);
     }
 
+    function testMintRevert(uint256 value) public {
+        value = bound(value, 0, FULL_PRICE - 1);
+        vm.deal(user, value);
+        vm.prank(user);
+        vm.expectRevert("Not enough eth");
+        nft.mint{value: value}();
+    }
+
     function testMintWithProof() public {
         vm.deal(user, DISCOUNT_PRICE);
         vm.startPrank(user);
@@ -48,6 +56,25 @@ contract NftStakingTest is Test {
         proof[0] = USER_PROOF;
         nft.mint{value: DISCOUNT_PRICE}(1, proof);
         assertTrue(nft.balanceOf(user) == 1);
+    }
+
+    function testMintWithProofRevert(uint256 value) public {
+        value = bound(value, 0, DISCOUNT_PRICE - 1);
+        vm.deal(user, DISCOUNT_PRICE);
+
+        bytes32[] memory proof = new bytes32[](1);
+        
+        vm.prank(user);
+        vm.expectRevert("Wrong merkle proof");
+        nft.mint{value: DISCOUNT_PRICE}(1, proof);    
+
+        proof[0] = USER_PROOF;
+
+        vm.prank(user);
+        vm.expectRevert("Not enough eth");
+        nft.mint{value: value}(1, proof);
+
+
     }
 
     function testRevertIfReuseProof() public {
@@ -82,7 +109,18 @@ contract NftStakingTest is Test {
         uint256 balance_ = admin.balance;
         assertEq(balance_ - _balance, MAX_SUPPLY * FULL_PRICE);
 
+        Token mockToken = new Token("Mock", "MCK");
+
+        changePrank(address(234));
+        vm.expectRevert("Only staking contract could mint");
+        mockToken.mint(address(nft), 1 wei);
+
+        changePrank(admin);
+        mockToken.mint(address(nft), 1 wei);
+        _balance = mockToken.balanceOf(address(nft));
         nft.withdraw(address(token));
+        balance_ = mockToken.balanceOf(address(nft));
+        assertEq(balance_ - _balance, 1 wei);
     }
 
     function testStakeClaimAndWithdraw() public {
@@ -98,5 +136,40 @@ contract NftStakingTest is Test {
 
         staking.withdraw(tokenId);
         assertEq(nft.ownerOf(tokenId), user);
+    }
+
+    function testStakeRevert() public {
+        NFT mockNft = new NFT("Test NFT", "TNFT", MAX_SUPPLY, DEFAULT_FEE, FULL_PRICE, DISCOUNT_PRICE, MERKLE_ROOT); 
+        vm.deal(user, FULL_PRICE);
+        vm.startPrank(user);
+        mockNft.mint{value: FULL_PRICE}();
+
+        uint256 tokenId = 1;
+        vm.expectRevert("Wrong NFT");
+        mockNft.safeTransferFrom(user, address(staking), 1);
+    }
+
+    function testWithdrawRevert() public {
+        testMint(1);
+        vm.startPrank(user);
+        uint256 tokenId = 1;
+        nft.safeTransferFrom(user, address(staking), 1);
+
+        skip(2 days);
+        changePrank(address(234));
+        vm.expectRevert("Only NFT staker could withdraw");
+        staking.withdraw(tokenId);
+    }
+
+    function testClaimRevert() public {
+        testMint(1);
+        vm.startPrank(user);
+        uint256 tokenId = 1;
+        nft.safeTransferFrom(user, address(staking), 1);
+
+        skip(2 days);
+        changePrank(address(234));
+        vm.expectRevert("Only NFT staker could claim");
+        staking.claim(tokenId);
     }
 }

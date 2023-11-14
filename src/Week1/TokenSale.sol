@@ -80,7 +80,7 @@ contract TokenSale is Ownable, IERC1363Receiver {
         } else if (msg.sender == address(sellToken)) {
             uint256 output = getSellOutput(amount);
             tokensSold -= amount;
-            paymentToken.safeTransfer(spender, output);
+            paymentToken.safeTransfer(sender, output);
             emit Sell(sender, amount, output);
         } else {
             revert("Wrong token");
@@ -110,7 +110,7 @@ contract TokenSale is Ownable, IERC1363Receiver {
     function getBuyInput(uint256 amount) public view returns (uint256) {
         uint256 priceNow = tokensSold.mulWadUp(k) + initPrice;
         uint256 priceAfter = (tokensSold + amount).mulWadUp(k) + initPrice;
-        return (priceNow + priceAfter).mulWadUp(amount) / 2;
+        return (priceNow + priceAfter + 1).mulWadUp(amount) / 2;
     }
 
     // @notice Get amount of payment tokens that would be payed for specified amount of sell tokens
