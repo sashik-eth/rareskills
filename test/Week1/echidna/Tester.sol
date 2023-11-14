@@ -1,17 +1,35 @@
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 import "./Setup.sol";
+import {PropertiesAsserts} from "properties/util/PropertiesHelper.sol";
 
-abstract contract Tester is Setup,  {
-
+contract Tester is Setup, PropertiesAsserts {
     constructor() {
         _deploy();
     }
+
+    function donateToken(uint256 amount, bool isSellToken) public {
+        if (isSellToken) {
+            mockSellToken.mint(address(sale), amount);
+        } else {
+            mockPaymentToken.mint(address(sale), amount);
+        }
+    }
+
+    function totalValueInvariant() internal view returns (bool holds) {
+        uint256 sellTokenBalance = mockSellToken.balanceOf(address(sale));
+        if (sellTokenBalance > initAmount) return true;
+
+        uint256 paymentTokenBalance = mockPaymentToken.balanceOf(address(sale));
+        uint256 currentPrice = finalPrice - sellTokenBalance * (finalPrice - initPrice) / initAmount;
+
+        return paymentTokenBalance >= ((initAmount - sellTokenBalance) * (currentPrice + initPrice)) / 2 ether;
+    }
+
     function buy(uint amountToBuy) public initUser {
         uint256 amountToSpend = sale.getBuyInput(amountToBuy);
         _mintPaymentTokenOnce(amountToBuy);
+        
         _before();
-
-        //ACTION:
 
         (bool success, ) = user.proxy(
             address(sale),
@@ -22,329 +40,282 @@ abstract contract Tester is Setup,  {
             )
         );
 
-        _after();
-        //POSTCONDITIONS
+        assert(totalValueInvariant());
 
-        if (success) {
-            gt(
-                vars.kAfter,
-                vars.kBefore,
-                "P-01 | Adding liquidity increases K"
+        _after();
+        if (success && amountToBuy != 0) {
+            assertGte( 
+                vars.priceAfter,
+                vars.priceBefore,
+                "Price increase or remain after successful buy"
             );
-            gt(
-                vars.lpTotalSupplyAfter,
-                vars.lpTotalSupplyBefore,
-                "P-02 | Adding liquidity increases the total supply of LP tokens"
+            assertGt(
+                vars.userBalancePaymentBefore,
+                vars.userBalancePaymentAfter,
+                "User payment balance decrease"
             );
-            gt(
-                vars.reserve1After,
-                vars.reserve1Before,
-                "P-03 | Adding liquidity increases reserves of both tokens"
+            assertGt(
+                vars.contractBalancePaymentAfter,
+                vars.contractBalancePaymentBefore,
+                "Sale contract payment balance increase"
             );
-            gt(
-                vars.reserve2After,
-                vars.reserve2Before,
-                "P-03 | Adding liquidity increases reserves of both tokens"
+            assertGt(
+                vars.userBalanceSellAfter,
+                vars.userBalanceSellBefore,
+                "User sell token balance increase"
             );
-            gt(
-                vars.userLpBalanceAfter,
-                vars.userLpBalanceBefore,
-                "P-04 | Adding liquidity increases the user's LP balance"
+            assertGt(
+                vars.contractBalanceSellBefore,
+                vars.contractBalanceSellAfter,
+                "Sale contract sell token balance decrease"
             );
-            lt(
-                vars.userBalance1After,
-                vars.userBalance1Before,
-                "P-05 | Adding liquidity decreases the user's token balances"
-            );
-            lt(
-                vars.userBalance2After,
-                vars.userBalance2Before,
-                "P-05 | Adding liquidity decreases the user's token balances"
-            );
-            gte(
-                vars.feeToLpBalanceAfter,
-                vars.feeToLpBalanceBefore,
-                "P-06 | Adding liquidity does not decrease the `feeTo` LP balance"
-            );
-            if (vars.kBefore == 0) {
-                gt(
-                    (amount1 * amount2),
-                    vars.userLpBalanceAfter * vars.userLpBalanceAfter,
-                    "P-07 | Adding liquidity for the first time should mint LP tokens equals to the square root of the product of the token amounts minus a minimum liquidity constant"
-                );
-            }
         } else {
-            eq(
-                vars.reserve1After,
-                vars.reserve1Before,
-                "P-08 | Adding liquidity should not change anything if it fails"
+            assertEq(
+                vars.priceAfter,
+                vars.priceBefore,
+                "Price remain after failed or 0 amount buy"
             );
-            eq(
-                vars.reserve2After,
-                vars.reserve2Before,
-                "P-08 | Adding liquidity should not change anything if it fails"
+            assertEq(
+                vars.userBalancePaymentBefore,
+                vars.userBalancePaymentAfter,
+                "User payment balance remain"
             );
-            eq(
-                vars.userLpBalanceAfter,
-                vars.userLpBalanceBefore,
-                "P-08 | Adding liquidity should not change anything if it fails"
+            assertEq(
+                vars.contractBalancePaymentAfter,
+                vars.contractBalancePaymentBefore,
+                "Sale contract payment balance remain"
             );
-            eq(
-                vars.feeToLpBalanceAfter,
-                vars.feeToLpBalanceBefore,
-                "P-08 | Adding liquidity should not change anything if it fails"
+            assertEq(
+                vars.userBalanceSellAfter,
+                vars.userBalanceSellBefore,
+                "User sell token balance remain"
             );
-            eq(
-                vars.lpTotalSupplyAfter,
-                vars.lpTotalSupplyBefore,
-                "P-08 | Adding liquidity should not change anything if it fails"
-            );
-            eq(
-                vars.userBalance1After,
-                vars.userBalance1Before,
-                "P-08 | Adding liquidity should not change anything if it fails"
-            );
-            eq(
-                vars.userBalance2After,
-                vars.userBalance2Before,
-                "P-08 | Adding liquidity should not change anything if it fails"
-            );
-            eq(
-                vars.kAfter,
-                vars.kBefore,
-                "P-08 | Adding liquidity should not change anything if it fails"
-            );
-            // TODO decode each error and break down revert conditions accordingly
-            t(
-                // UniswapV2: OVERFLOW
-                // amounts overflow max reserve balance
-                amount1 + vars.reserve1Before > type(uint112).max ||
-                    amount2 + vars.reserve2Before > type(uint112).max ||
-                    // UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED
-                    // amounts do not pass minimum initial liquidity check
-                    (amount1 * amount2) <=
-                    pair.MINIMUM_LIQUIDITY() * pair.MINIMUM_LIQUIDITY() ||
-                    // UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED
-                    // amounts would mint zero liquidity
-                    ((vars.pairBalance1Before - vars.reserve1Before) *
-                        (vars.lpTotalSupplyBefore)) /
-                        vars.reserve1Before ==
-                    0 ||
-                    ((vars.pairBalance2Before - vars.reserve2Before) *
-                        (vars.lpTotalSupplyBefore)) /
-                        vars.reserve2Before ==
-                    0,
-                "P-09 | Adding liquidity should not fail if the provided amounts are within the valid range of `uint112`, would mint positive liquidity and are above the minimum initial liquidity check when minting for the first time"
+            assertEq(
+                vars.contractBalanceSellBefore,
+                vars.contractBalanceSellAfter,
+                "Sale contract sell token balance remain"
             );
         }
     }
 
-    function removeLiquidity(uint lpAmount) public initUser {
-        //PRECONDITIONS:
+    function buyWithHook(uint amountToBuy) public initUser {
+        uint256 amountToSpend = sale.getBuyInput(amountToBuy);
+        amountToSpend = clampBetween(amountToSpend, amountToSpend, type(uint256).max);
+        _mintPaymentTokenOnce(amountToBuy);
+        
         _before();
 
-        //user needs some LP tokens to burn
-        require(vars.userLpBalanceBefore > 0);
-        lpAmount = clampBetween(lpAmount, 1, vars.userLpBalanceBefore);
-
-        //need to approve more than min liquidity
-        (bool success1, ) = user.proxy(
-            address(pair),
-            abi.encodeWithSelector(
-                pair.approve.selector,
-                address(router),
-                type(uint256).max
-            )
-        );
-        t(success1, "This call should never fail");
-
-        //ACTION:
-
         (bool success, ) = user.proxy(
-            address(router),
-            abi.encodeWithSelector(
-                router.removeLiquidity.selector,
-                address(token1),
-                address(token2),
-                lpAmount,
-                0,
-                0,
-                address(user),
-                type(uint256).max
+            address(mockPaymentToken),
+            abi.encodeWithSignature(
+                "transferAndCall(address,uint256,bytes)",
+                address(sale),
+                amountToSpend,
+                abi.encode(amountToBuy)
             )
         );
+
+        assert(totalValueInvariant());
 
         _after();
-
-        //POSTCONDITIONS
-
-        if (success) {
-            lt(
-                vars.kAfter,
-                vars.kBefore,
-                "P-10 | Removing liquidity decreases K"
+        if (success && amountToBuy != 0) {
+            assertGte(
+                vars.priceAfter,
+                vars.priceBefore,
+                "Price increase or remain after successful buy"
             );
-            if (factory.feeTo() == address(0)) {
-                lt(
-                    vars.lpTotalSupplyAfter,
-                    vars.lpTotalSupplyBefore,
-                    "P-11 | Removing liquidity decreases the total supply of LP tokens if fee is off"
-                );
-            } else {
-                gte(
-                    vars.feeToLpBalanceAfter,
-                    vars.feeToLpBalanceBefore,
-                    "P-15 | Removing liquidity does not decrease the `feeTo` LP balance"
-                );
-            }
-            lt(
-                vars.reserve1After,
-                vars.reserve1Before,
-                "P-12 | Removing liquidity decreases reserves of both tokens"
+            assertGt(
+                vars.userBalancePaymentBefore,
+                vars.userBalancePaymentAfter,
+                "User payment balance decrease"
             );
-            lt(
-                vars.reserve2After,
-                vars.reserve2Before,
-                "P-12 | Removing liquidity decreases reserves of both tokens"
+            assertGt(
+                vars.contractBalancePaymentAfter,
+                vars.contractBalancePaymentBefore,
+                "Sale contract payment balance increase"
             );
-            lt(
-                vars.userLpBalanceAfter,
-                vars.userLpBalanceBefore,
-                "P-13 | Removing liquidity decreases the user's LP balance"
+            assertGt(
+                vars.userBalanceSellAfter,
+                vars.userBalanceSellBefore,
+                "User sell token balance increase"
             );
-            gt(
-                vars.userBalance1After,
-                vars.userBalance1Before,
-                "P-14 | Removing liquidity increases the user's token balances"
-            );
-            gt(
-                vars.userBalance2After,
-                vars.userBalance2Before,
-                "P-14 | Removing liquidity increases the user's token balances"
+            assertGt(
+                vars.contractBalanceSellBefore,
+                vars.contractBalanceSellAfter,
+                "Sale contract sell token balance decrease"
             );
         } else {
-            eq(
-                vars.reserve1After,
-                vars.reserve1Before,
-                "P-16 | Removing liquidity should not change anything if it fails"
+            assertEq(
+                vars.priceAfter,
+                vars.priceBefore,
+                "Price remain after failed or 0 amount buy"
             );
-            eq(
-                vars.reserve2After,
-                vars.reserve2Before,
-                "P-16 | Removing liquidity should not change anything if it fails"
+            assertEq(
+                vars.userBalancePaymentBefore,
+                vars.userBalancePaymentAfter,
+                "User payment balance remain"
             );
-            eq(
-                vars.userLpBalanceAfter,
-                vars.userLpBalanceBefore,
-                "P-16 | Removing liquidity should not change anything if it fails"
+            assertEq(
+                vars.contractBalancePaymentAfter,
+                vars.contractBalancePaymentBefore,
+                "Sale contract payment balance remain"
             );
-            eq(
-                vars.feeToLpBalanceAfter,
-                vars.feeToLpBalanceBefore,
-                "P-16 | Removing liquidity should not change anything if it fails"
+            assertEq(
+                vars.userBalanceSellAfter,
+                vars.userBalanceSellBefore,
+                "User sell token balance remain"
             );
-            eq(
-                vars.lpTotalSupplyAfter,
-                vars.lpTotalSupplyBefore,
-                "P-16 | Removing liquidity should not change anything if it fails"
-            );
-            eq(
-                vars.userBalance1After,
-                vars.userBalance1Before,
-                "P-16 | Removing liquidity should not change anything if it fails"
-            );
-            eq(
-                vars.userBalance2After,
-                vars.userBalance2Before,
-                "P-16 | Removing liquidity should not change anything if it fails"
-            );
-            eq(
-                vars.kAfter,
-                vars.kBefore,
-                "P-16 | Removing liquidity should not change anything if it fails"
-            );
-            // amounts returned to the user must be greater than zero
-            t(
-                // UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED
-                (lpAmount * vars.pairBalance1Before) /
-                    vars.lpTotalSupplyBefore ==
-                    0 ||
-                    (lpAmount * vars.pairBalance2Before) /
-                        vars.lpTotalSupplyBefore ==
-                    0,
-                "P-17 | Removing liquidity should not fail if the returned amounts to the user are greater than zero"
+            assertEq(
+                vars.contractBalanceSellBefore,
+                vars.contractBalanceSellAfter,
+                "Sale contract sell token balance remain"
             );
         }
     }
 
-    function swapExactTokensForTokens(uint swapAmountIn) public initUser {
-        //PRECONDITIONS:
-
-        _mintTokensOnce(swapAmountIn, swapAmountIn);
+    function sell(uint amountToSell) public initUser {
+        
+        uint256 amountToReceive = sale.getSellOutput(amountToSell);
+        _mintSellTokenOnce(amountToSell);
+        
         _before();
-
-        address[] memory path = new address[](2);
-        path[0] = address(token1);
-        path[1] = address(token2);
-
-        require(vars.userBalance1Before > 0);
-
-        swapAmountIn = clampBetween(swapAmountIn, 1, vars.userBalance1Before);
-
-        //ACTION:
-
         (bool success, ) = user.proxy(
-            address(router),
+            address(sale),
             abi.encodeWithSelector(
-                router.swapExactTokensForTokens.selector,
-                swapAmountIn,
-                0,
-                path,
-                address(user),
-                type(uint256).max
+                sale.sell.selector,
+                amountToSell,
+                amountToReceive
             )
         );
 
+        assert(totalValueInvariant());
+        
         _after();
-
-        //POSTCONDITIONS:
-
-        if (success) {
-            gte(
-                vars.kAfter,
-                vars.kBefore,
-                "P-18 | Swapping does not decrease K"
+        if (success && amountToSell != 0) {
+            assertGte( 
+                vars.priceBefore,
+                vars.priceAfter,
+                "Price decrease or remain after successful sell"
             );
-            gt(
-                vars.userBalance2After,
-                vars.userBalance2Before,
-                "P-19 | Swapping increases the sender's tokenOut balance"
+            assertGt(
+                vars.userBalancePaymentAfter,
+                vars.userBalancePaymentBefore,
+                "User payment balance increase"
             );
-            eq(
-                vars.userBalance1After,
-                vars.userBalance1Before - swapAmountIn,
-                "P-20 | Swapping decreases the sender's tokenIn balance by swapAmountIn"
+            assertGt(
+                vars.contractBalancePaymentBefore,
+                vars.contractBalancePaymentAfter,
+                "Sale contract payment balance decrease"
             );
-            gte(
-                vars.feeToLpBalanceAfter,
-                vars.feeToLpBalanceBefore,
-                "P-21 | Swapping does not decrease the `feeTo` LP balance"
+            assertGt(
+                vars.userBalanceSellBefore,
+                vars.userBalanceSellAfter,
+                "User sell token balance decrease"
+            );
+            assertGt(
+                vars.contractBalanceSellAfter,
+                vars.contractBalanceSellBefore,
+                "Sale contract sell token balance increase"
             );
         } else {
-            uint[] memory amounts = UniswapV2Library.getAmountsOut(
-                address(factory),
-                swapAmountIn,
-                path
+            assertEq(
+                vars.priceAfter,
+                vars.priceBefore,
+                "Price remain after failed or 0 amount sell"
             );
-            // TODO decode each error and break down revert conditions accordingly
-            t(
-                // UniswapV2: INSUFFICIENT_LIQUIDITY
-                amounts[1] > vars.reserve2Before ||
-                    // UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT
-                    amounts[1] == 0 ||
-                    // UniswapV2: OVERFLOW
-                    swapAmountIn + vars.reserve1Before > type(uint112).max,
-                "P-22 | Swapping should not fail if there's enough liquidity, if the output would be positive and if the input would not overflow the valid range of `uint112`"
+            assertEq(
+                vars.userBalancePaymentBefore,
+                vars.userBalancePaymentAfter,
+                "User payment balance remain"
+            );
+            assertEq(
+                vars.contractBalancePaymentAfter,
+                vars.contractBalancePaymentBefore,
+                "Sale contract payment balance remain"
+            );
+            assertEq(
+                vars.userBalanceSellAfter,
+                vars.userBalanceSellBefore,
+                "User sell token balance remain"
+            );
+            assertEq(
+                vars.contractBalanceSellBefore,
+                vars.contractBalanceSellAfter,
+                "Sale contract sell token balance remain"
+            );
+        }
+    }
+
+    function sellWithHook(uint amountToSell) public initUser {
+        uint256 amountToSpend = sale.getBuyInput(amountToSell);
+        amountToSpend = clampBetween(amountToSpend, amountToSpend, type(uint256).max);
+        _mintSellTokenOnce(amountToSell);
+        
+        _before();
+
+        (bool success, ) = user.proxy(
+            address(mockSellToken),
+            abi.encodeWithSignature(
+                "transferAndCall(address,uint256)",
+                address(sale),
+                amountToSell
+            )
+        );
+
+        assert(totalValueInvariant());
+
+        _after();
+        if (success && amountToSell != 0) {
+            assertGte(
+                vars.priceBefore,
+                vars.priceAfter,
+                "Price increase or remain after successful buy"
+            );
+            assertGt(
+                vars.userBalancePaymentAfter,
+                vars.userBalancePaymentBefore,
+                "User payment balance increase"
+            );
+            assertGt(
+                vars.contractBalancePaymentBefore,
+                vars.contractBalancePaymentAfter,
+                "Sale contract payment balance decrease"
+            );
+            assertGt(
+                vars.userBalanceSellBefore,
+                vars.userBalanceSellAfter,
+                "User sell token balance decrease"
+            );
+            assertGt(
+                vars.contractBalanceSellAfter,
+                vars.contractBalanceSellBefore,
+                "Sale contract sell token balance increase"
+            );
+        } else {
+            assertEq(
+                vars.priceAfter,
+                vars.priceBefore,
+                "Price remain after failed or 0 amount buy"
+            );
+            assertEq(
+                vars.userBalancePaymentBefore,
+                vars.userBalancePaymentAfter,
+                "User payment balance remain"
+            );
+            assertEq(
+                vars.contractBalancePaymentAfter,
+                vars.contractBalancePaymentBefore,
+                "Sale contract payment balance remain"
+            );
+            assertEq(
+                vars.userBalanceSellAfter,
+                vars.userBalanceSellBefore,
+                "User sell token balance remain"
+            );
+            assertEq(
+                vars.contractBalanceSellBefore,
+                vars.contractBalanceSellAfter,
+                "Sale contract sell token balance remain"
             );
         }
     }

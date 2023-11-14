@@ -63,7 +63,7 @@ contract TokenSale is Ownable, IERC1363Receiver {
     // @param sender The address from which tokens transferred
     // @param amount number of transferred tokens
     // @param data arbitrary user data, in case of buying should include buying amount
-    function onTransferReceived(address spender, address sender, uint256 amount, bytes calldata data)
+    function onTransferReceived(address, address sender, uint256 amount, bytes calldata data)
         external
         returns (bytes4)
     {

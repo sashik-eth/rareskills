@@ -9,4 +9,5 @@ cryticArgs: ["--solc-remaps",     "ds-test/=lib/forge-std/lib/ds-test/src/
         foundry-huff/=lib/foundry-huff/src/
         huffmate/=lib/huffmate/src/
         solidity-stringutils/=lib/foundry-huff/lib/solidity-stringutils/
-        stringutils/=lib/foundry-huff/lib/solidity-stringutils/"]
+        stringutils/=lib/foundry-huff/lib/solidity-stringutils/ 
+        properties/=lib/properties/contracts/"]

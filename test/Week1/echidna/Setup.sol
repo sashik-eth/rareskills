@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 
 import {TokenSale} from "../../../src/Week1/TokenSale.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
@@ -31,10 +31,8 @@ contract Setup {
         uint256 userBalancePaymentBefore;
         uint256 userBalanceSellAfter;
         uint256 userBalancePaymentAfter;
-        uint256 buyPriceBefore;
-        uint256 buyPriceAfter;
-        uint256 sellPriceBefore;
-        uint256 sellPriceAfter;
+        uint256 priceBefore;
+        uint256 priceAfter;
     }
 
     uint256 initPrice = 100 ether;
@@ -107,8 +105,7 @@ contract Setup {
         vars.userBalancePaymentBefore = mockPaymentToken.balanceOf(address(user));
         vars.contractBalanceSellBefore = mockSellToken.balanceOf(address(sale));
         vars.contractBalancePaymentBefore = mockPaymentToken.balanceOf(address(sale));
-        vars.buyPriceBefore = sale.getBuyInput(1);
-        vars.sellPriceBefore = sale.getSellOutput(1);
+        vars.priceBefore = sale.getBuyInput(1 ether);
     }
 
     function _after() internal {
@@ -116,7 +113,6 @@ contract Setup {
         vars.userBalancePaymentAfter = mockPaymentToken.balanceOf(address(user));
         vars.contractBalanceSellAfter = mockSellToken.balanceOf(address(sale));
         vars.contractBalancePaymentAfter = mockPaymentToken.balanceOf(address(sale));
-        vars.buyPriceAfter = sale.getBuyInput(1);
-        vars.sellPriceAfter = sale.getSellOutput(1);
+        vars.priceAfter = sale.getBuyInput(1 ether);
     }
 }
