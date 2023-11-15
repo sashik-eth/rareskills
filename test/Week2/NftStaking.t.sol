@@ -118,9 +118,9 @@ contract NftStakingTest is Test {
         changePrank(admin);
         mockToken.mint(address(nft), 1 wei);
         _balance = mockToken.balanceOf(address(nft));
-        nft.withdraw(address(token));
+        nft.withdraw(address(mockToken));
         balance_ = mockToken.balanceOf(address(nft));
-        assertEq(balance_ - _balance, 1 wei);
+        assertEq(_balance - balance_, 1 wei);
     }
 
     function testStakeClaimAndWithdraw() public {

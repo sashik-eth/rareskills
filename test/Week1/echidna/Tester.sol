@@ -40,10 +40,16 @@ contract Tester is Setup, PropertiesAsserts {
             )
         );
 
-        assert(totalValueInvariant());
-
         _after();
+
+        assertWithMsg(totalValueInvariant(), "Total value is less than should be");
+
         if (success && amountToBuy != 0) {
+            assertGte(
+                sale.getSellOutput(vars.userBalanceSellAfter - vars.userBalanceSellBefore) * 1001 / 1000,
+                vars.userBalancePaymentBefore - vars.userBalancePaymentAfter,
+                "User didn't overpay"
+            );
             assertGte( 
                 vars.priceAfter,
                 vars.priceBefore,
@@ -115,10 +121,16 @@ contract Tester is Setup, PropertiesAsserts {
             )
         );
 
-        assert(totalValueInvariant());
-
         _after();
+
+        assertWithMsg(totalValueInvariant(), "Total value is less than should be");
+
         if (success && amountToBuy != 0) {
+            assertGte(
+                sale.getSellOutput(vars.userBalanceSellAfter - vars.userBalanceSellBefore) * 1001 / 1000,
+                vars.userBalancePaymentBefore - vars.userBalancePaymentAfter,
+                "User didn't overpay"
+            );
             assertGte(
                 vars.priceAfter,
                 vars.priceBefore,
@@ -188,9 +200,10 @@ contract Tester is Setup, PropertiesAsserts {
             )
         );
 
-        assert(totalValueInvariant());
-        
         _after();
+
+        assertWithMsg(totalValueInvariant(), "Total value is less than should be");
+        
         if (success && amountToSell != 0) {
             assertGte( 
                 vars.priceBefore,
@@ -262,9 +275,10 @@ contract Tester is Setup, PropertiesAsserts {
             )
         );
 
-        assert(totalValueInvariant());
-
         _after();
+        
+        assertWithMsg(totalValueInvariant(), "Total value is less than should be");
+
         if (success && amountToSell != 0) {
             assertGte(
                 vars.priceBefore,

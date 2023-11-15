@@ -28,7 +28,7 @@ contract TokenSaleTest is Test {
         mockOtherToken = new MockERC1363("Mock Other Token", "MOT");
 
         sale =
-        new TokenSale(ERC20(address(mockSellToken)), ERC20(address(mockPaymentToken)), initPrice, finalPrice, initAmount, endTimestamp);
+        new TokenSale((address(mockSellToken)), address(mockPaymentToken), initPrice, finalPrice, initAmount, endTimestamp);
         deal(address(mockSellToken), address(this), initAmount);
         mockSellToken.approve(address(sale), initAmount);
         sale.deposit();
@@ -93,7 +93,7 @@ contract TokenSaleTest is Test {
     function testRevertIfOwnerDepositLess(uint256 amount) public {
         vm.assume(amount < initAmount);
         TokenSale _sale =
-            new TokenSale(mockSellToken, mockPaymentToken, initPrice, finalPrice, initAmount, endTimestamp);
+            new TokenSale(address(mockSellToken), address(mockPaymentToken), initPrice, finalPrice, initAmount, endTimestamp);
         deal(address(mockSellToken), address(this), amount);
         mockSellToken.approve(address(_sale), amount);
         vm.expectRevert();
@@ -106,9 +106,9 @@ contract TokenSaleTest is Test {
         vm.prank(OWNER);
         if (block.timestamp <= endTimestamp) {
             vm.expectRevert("Too early withdraw");
-            sale.withdraw(mockSellToken);
+            sale.withdraw(address(mockSellToken));
         } else {
-            sale.withdraw(mockSellToken);
+            sale.withdraw(address(mockSellToken));
             uint256 balance_ = mockSellToken.balanceOf(OWNER);
             assertEq(balance_ - _balance, initAmount, "Wrong amount of tokens withdrawn");
         }

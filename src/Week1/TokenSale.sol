@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
-import {IERC1363Receiver} from "erc1363-payable-token/contracts/token/ERC1363/IERC1363Receiver.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {Owned} from "solmate/auth/Owned.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
-contract TokenSale is Ownable, IERC1363Receiver {
-    using SafeERC20 for IERC20;
+// contract TokenSale is Ownable, IERC1363Receiver {
+contract TokenSale is Owned {
+    using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
 
     event Buy(address indexed buyer, uint256 bought, uint256 payed);
     event Sell(address indexed seller, uint256 sold, uint256 received);
 
-    IERC20 immutable sellToken;
-    IERC20 immutable paymentToken;
+    ERC20 immutable sellToken;
+    ERC20 immutable paymentToken;
     uint256 immutable k;
     uint256 immutable initBalance;
     uint256 immutable initPrice;
@@ -30,15 +30,15 @@ contract TokenSale is Ownable, IERC1363Receiver {
     // @param _initAmount Amount of tokens that would be available for sale
     // @param _endTimestamp Sale ending timestamp
     constructor(
-        IERC20 _sellToken,
-        IERC20 _paymentToken,
+        address _sellToken,
+        address _paymentToken,
         uint256 _initPrice,
         uint256 _finalPrice,
         uint256 _initAmount,
         uint256 _endTimestamp
-    ) {
-        sellToken = _sellToken;
-        paymentToken = _paymentToken;
+    ) Owned(msg.sender) {
+        sellToken = ERC20(_sellToken);
+        paymentToken = ERC20(_paymentToken);
         initBalance = _initAmount;
         initPrice = _initPrice;
         endTimestamp = _endTimestamp;
@@ -48,9 +48,9 @@ contract TokenSale is Ownable, IERC1363Receiver {
     // @notice Withdraw all tokens after sale ends
     // @dev Could be called only by OWNER
     // @param token The address of withdrawn token
-    function withdraw(IERC20 token) external onlyOwner {
+    function withdraw(address token) external onlyOwner {
         require(block.timestamp > endTimestamp, "Too early withdraw");
-        token.safeTransfer(msg.sender, token.balanceOf(address(this)));
+        ERC20(token).safeTransfer(msg.sender, ERC20(token).balanceOf(address(this)));
     }
 
     // @notice Deposit initial tokens

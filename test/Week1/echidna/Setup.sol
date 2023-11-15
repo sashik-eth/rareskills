@@ -61,7 +61,7 @@ contract Setup {
     function _deploy() internal {
         mockSellToken = new MockERC1363("Mock Sell Token", "MST");
         mockPaymentToken = new MockERC1363("Mock Payment Token", "MPT");
-        sale = new TokenSale(ERC20(address(mockSellToken)), ERC20(address(mockPaymentToken)), initPrice, finalPrice, initAmount, endTimestamp);
+        sale = new TokenSale(address(mockSellToken), address(mockPaymentToken), initPrice, finalPrice, initAmount, endTimestamp);
 
         mockSellToken.mint(address(this), initAmount);
         mockSellToken.approve(address(sale), initAmount);

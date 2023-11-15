@@ -41,7 +41,7 @@ contract Staking is IERC721Receiver {
     function withdraw(uint256 tokenId) external {
         require(stakes[tokenId].staker == msg.sender, "Only NFT staker could withdraw");
         _claim(tokenId);
-        delete stakes[tokenId].staker;
+        delete stakes[tokenId];
         nft.safeTransferFrom(address(this), msg.sender, tokenId);
         emit Withdraw(msg.sender, tokenId);
     }
