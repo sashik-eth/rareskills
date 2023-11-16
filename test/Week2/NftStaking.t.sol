@@ -63,18 +63,16 @@ contract NftStakingTest is Test {
         vm.deal(user, DISCOUNT_PRICE);
 
         bytes32[] memory proof = new bytes32[](1);
-        
+
         vm.prank(user);
         vm.expectRevert("Wrong merkle proof");
-        nft.mint{value: DISCOUNT_PRICE}(1, proof);    
+        nft.mint{value: DISCOUNT_PRICE}(1, proof);
 
         proof[0] = USER_PROOF;
 
         vm.prank(user);
         vm.expectRevert("Not enough eth");
         nft.mint{value: value}(1, proof);
-
-
     }
 
     function testRevertIfReuseProof() public {
@@ -139,7 +137,7 @@ contract NftStakingTest is Test {
     }
 
     function testStakeRevert() public {
-        NFT mockNft = new NFT("Test NFT", "TNFT", MAX_SUPPLY, DEFAULT_FEE, FULL_PRICE, DISCOUNT_PRICE, MERKLE_ROOT); 
+        NFT mockNft = new NFT("Test NFT", "TNFT", MAX_SUPPLY, DEFAULT_FEE, FULL_PRICE, DISCOUNT_PRICE, MERKLE_ROOT);
         vm.deal(user, FULL_PRICE);
         vm.startPrank(user);
         mockNft.mint{value: FULL_PRICE}();

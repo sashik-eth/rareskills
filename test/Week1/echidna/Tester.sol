@@ -1,4 +1,5 @@
 pragma solidity 0.8.19;
+
 import "./Setup.sol";
 import {PropertiesAsserts} from "properties/util/PropertiesHelper.sol";
 
@@ -25,20 +26,14 @@ contract Tester is Setup, PropertiesAsserts {
         return paymentTokenBalance >= ((initAmount - sellTokenBalance) * (currentPrice + initPrice)) / 2 ether;
     }
 
-    function buy(uint amountToBuy) public initUser {
+    function buy(uint256 amountToBuy) public initUser {
         uint256 amountToSpend = sale.getBuyInput(amountToBuy);
         _mintPaymentTokenOnce(amountToBuy);
-        
+
         _before();
 
-        (bool success, ) = user.proxy(
-            address(sale),
-            abi.encodeWithSelector(
-                sale.buy.selector,
-                amountToBuy,
-                amountToSpend
-            )
-        );
+        (bool success,) =
+            user.proxy(address(sale), abi.encodeWithSelector(sale.buy.selector, amountToBuy, amountToSpend));
 
         _after();
 
@@ -50,74 +45,45 @@ contract Tester is Setup, PropertiesAsserts {
                 vars.userBalancePaymentBefore - vars.userBalancePaymentAfter,
                 "User didn't overpay"
             );
-            assertGte( 
-                vars.priceAfter,
-                vars.priceBefore,
-                "Price increase or remain after successful buy"
-            );
-            assertGt(
-                vars.userBalancePaymentBefore,
-                vars.userBalancePaymentAfter,
-                "User payment balance decrease"
-            );
+            assertGte(vars.priceAfter, vars.priceBefore, "Price increase or remain after successful buy");
+            assertGt(vars.userBalancePaymentBefore, vars.userBalancePaymentAfter, "User payment balance decrease");
             assertGt(
                 vars.contractBalancePaymentAfter,
                 vars.contractBalancePaymentBefore,
                 "Sale contract payment balance increase"
             );
-            assertGt(
-                vars.userBalanceSellAfter,
-                vars.userBalanceSellBefore,
-                "User sell token balance increase"
-            );
+            assertGt(vars.userBalanceSellAfter, vars.userBalanceSellBefore, "User sell token balance increase");
             assertGt(
                 vars.contractBalanceSellBefore,
                 vars.contractBalanceSellAfter,
                 "Sale contract sell token balance decrease"
             );
         } else {
-            assertEq(
-                vars.priceAfter,
-                vars.priceBefore,
-                "Price remain after failed or 0 amount buy"
-            );
-            assertEq(
-                vars.userBalancePaymentBefore,
-                vars.userBalancePaymentAfter,
-                "User payment balance remain"
-            );
+            assertEq(vars.priceAfter, vars.priceBefore, "Price remain after failed or 0 amount buy");
+            assertEq(vars.userBalancePaymentBefore, vars.userBalancePaymentAfter, "User payment balance remain");
             assertEq(
                 vars.contractBalancePaymentAfter,
                 vars.contractBalancePaymentBefore,
                 "Sale contract payment balance remain"
             );
+            assertEq(vars.userBalanceSellAfter, vars.userBalanceSellBefore, "User sell token balance remain");
             assertEq(
-                vars.userBalanceSellAfter,
-                vars.userBalanceSellBefore,
-                "User sell token balance remain"
-            );
-            assertEq(
-                vars.contractBalanceSellBefore,
-                vars.contractBalanceSellAfter,
-                "Sale contract sell token balance remain"
+                vars.contractBalanceSellBefore, vars.contractBalanceSellAfter, "Sale contract sell token balance remain"
             );
         }
     }
 
-    function buyWithHook(uint amountToBuy) public initUser {
+    function buyWithHook(uint256 amountToBuy) public initUser {
         uint256 amountToSpend = sale.getBuyInput(amountToBuy);
         amountToSpend = clampBetween(amountToSpend, amountToSpend, type(uint256).max);
         _mintPaymentTokenOnce(amountToBuy);
-        
+
         _before();
 
-        (bool success, ) = user.proxy(
+        (bool success,) = user.proxy(
             address(mockPaymentToken),
             abi.encodeWithSignature(
-                "transferAndCall(address,uint256,bytes)",
-                address(sale),
-                amountToSpend,
-                abi.encode(amountToBuy)
+                "transferAndCall(address,uint256,bytes)", address(sale), amountToSpend, abi.encode(amountToBuy)
             )
         );
 
@@ -131,205 +97,116 @@ contract Tester is Setup, PropertiesAsserts {
                 vars.userBalancePaymentBefore - vars.userBalancePaymentAfter,
                 "User didn't overpay"
             );
-            assertGte(
-                vars.priceAfter,
-                vars.priceBefore,
-                "Price increase or remain after successful buy"
-            );
-            assertGt(
-                vars.userBalancePaymentBefore,
-                vars.userBalancePaymentAfter,
-                "User payment balance decrease"
-            );
+            assertGte(vars.priceAfter, vars.priceBefore, "Price increase or remain after successful buy");
+            assertGt(vars.userBalancePaymentBefore, vars.userBalancePaymentAfter, "User payment balance decrease");
             assertGt(
                 vars.contractBalancePaymentAfter,
                 vars.contractBalancePaymentBefore,
                 "Sale contract payment balance increase"
             );
-            assertGt(
-                vars.userBalanceSellAfter,
-                vars.userBalanceSellBefore,
-                "User sell token balance increase"
-            );
+            assertGt(vars.userBalanceSellAfter, vars.userBalanceSellBefore, "User sell token balance increase");
             assertGt(
                 vars.contractBalanceSellBefore,
                 vars.contractBalanceSellAfter,
                 "Sale contract sell token balance decrease"
             );
         } else {
-            assertEq(
-                vars.priceAfter,
-                vars.priceBefore,
-                "Price remain after failed or 0 amount buy"
-            );
-            assertEq(
-                vars.userBalancePaymentBefore,
-                vars.userBalancePaymentAfter,
-                "User payment balance remain"
-            );
+            assertEq(vars.priceAfter, vars.priceBefore, "Price remain after failed or 0 amount buy");
+            assertEq(vars.userBalancePaymentBefore, vars.userBalancePaymentAfter, "User payment balance remain");
             assertEq(
                 vars.contractBalancePaymentAfter,
                 vars.contractBalancePaymentBefore,
                 "Sale contract payment balance remain"
             );
+            assertEq(vars.userBalanceSellAfter, vars.userBalanceSellBefore, "User sell token balance remain");
             assertEq(
-                vars.userBalanceSellAfter,
-                vars.userBalanceSellBefore,
-                "User sell token balance remain"
-            );
-            assertEq(
-                vars.contractBalanceSellBefore,
-                vars.contractBalanceSellAfter,
-                "Sale contract sell token balance remain"
+                vars.contractBalanceSellBefore, vars.contractBalanceSellAfter, "Sale contract sell token balance remain"
             );
         }
     }
 
-    function sell(uint amountToSell) public initUser {
-        
+    function sell(uint256 amountToSell) public initUser {
         uint256 amountToReceive = sale.getSellOutput(amountToSell);
         _mintSellTokenOnce(amountToSell);
-        
+
         _before();
-        (bool success, ) = user.proxy(
-            address(sale),
-            abi.encodeWithSelector(
-                sale.sell.selector,
-                amountToSell,
-                amountToReceive
-            )
-        );
+        (bool success,) =
+            user.proxy(address(sale), abi.encodeWithSelector(sale.sell.selector, amountToSell, amountToReceive));
 
         _after();
 
         assertWithMsg(totalValueInvariant(), "Total value is less than should be");
-        
+
         if (success && amountToSell != 0) {
-            assertGte( 
-                vars.priceBefore,
-                vars.priceAfter,
-                "Price decrease or remain after successful sell"
-            );
-            assertGt(
-                vars.userBalancePaymentAfter,
-                vars.userBalancePaymentBefore,
-                "User payment balance increase"
-            );
+            assertGte(vars.priceBefore, vars.priceAfter, "Price decrease or remain after successful sell");
+            assertGt(vars.userBalancePaymentAfter, vars.userBalancePaymentBefore, "User payment balance increase");
             assertGt(
                 vars.contractBalancePaymentBefore,
                 vars.contractBalancePaymentAfter,
                 "Sale contract payment balance decrease"
             );
-            assertGt(
-                vars.userBalanceSellBefore,
-                vars.userBalanceSellAfter,
-                "User sell token balance decrease"
-            );
+            assertGt(vars.userBalanceSellBefore, vars.userBalanceSellAfter, "User sell token balance decrease");
             assertGt(
                 vars.contractBalanceSellAfter,
                 vars.contractBalanceSellBefore,
                 "Sale contract sell token balance increase"
             );
         } else {
-            assertEq(
-                vars.priceAfter,
-                vars.priceBefore,
-                "Price remain after failed or 0 amount sell"
-            );
-            assertEq(
-                vars.userBalancePaymentBefore,
-                vars.userBalancePaymentAfter,
-                "User payment balance remain"
-            );
+            assertEq(vars.priceAfter, vars.priceBefore, "Price remain after failed or 0 amount sell");
+            assertEq(vars.userBalancePaymentBefore, vars.userBalancePaymentAfter, "User payment balance remain");
             assertEq(
                 vars.contractBalancePaymentAfter,
                 vars.contractBalancePaymentBefore,
                 "Sale contract payment balance remain"
             );
+            assertEq(vars.userBalanceSellAfter, vars.userBalanceSellBefore, "User sell token balance remain");
             assertEq(
-                vars.userBalanceSellAfter,
-                vars.userBalanceSellBefore,
-                "User sell token balance remain"
-            );
-            assertEq(
-                vars.contractBalanceSellBefore,
-                vars.contractBalanceSellAfter,
-                "Sale contract sell token balance remain"
+                vars.contractBalanceSellBefore, vars.contractBalanceSellAfter, "Sale contract sell token balance remain"
             );
         }
     }
 
-    function sellWithHook(uint amountToSell) public initUser {
+    function sellWithHook(uint256 amountToSell) public initUser {
         uint256 amountToSpend = sale.getBuyInput(amountToSell);
         amountToSpend = clampBetween(amountToSpend, amountToSpend, type(uint256).max);
         _mintSellTokenOnce(amountToSell);
-        
+
         _before();
 
-        (bool success, ) = user.proxy(
+        (bool success,) = user.proxy(
             address(mockSellToken),
-            abi.encodeWithSignature(
-                "transferAndCall(address,uint256)",
-                address(sale),
-                amountToSell
-            )
+            abi.encodeWithSignature("transferAndCall(address,uint256)", address(sale), amountToSell)
         );
 
         _after();
-        
+
         assertWithMsg(totalValueInvariant(), "Total value is less than should be");
 
         if (success && amountToSell != 0) {
-            assertGte(
-                vars.priceBefore,
-                vars.priceAfter,
-                "Price increase or remain after successful buy"
-            );
-            assertGt(
-                vars.userBalancePaymentAfter,
-                vars.userBalancePaymentBefore,
-                "User payment balance increase"
-            );
+            assertGte(vars.priceBefore, vars.priceAfter, "Price increase or remain after successful buy");
+            assertGt(vars.userBalancePaymentAfter, vars.userBalancePaymentBefore, "User payment balance increase");
             assertGt(
                 vars.contractBalancePaymentBefore,
                 vars.contractBalancePaymentAfter,
                 "Sale contract payment balance decrease"
             );
-            assertGt(
-                vars.userBalanceSellBefore,
-                vars.userBalanceSellAfter,
-                "User sell token balance decrease"
-            );
+            assertGt(vars.userBalanceSellBefore, vars.userBalanceSellAfter, "User sell token balance decrease");
             assertGt(
                 vars.contractBalanceSellAfter,
                 vars.contractBalanceSellBefore,
                 "Sale contract sell token balance increase"
             );
         } else {
-            assertEq(
-                vars.priceAfter,
-                vars.priceBefore,
-                "Price remain after failed or 0 amount buy"
-            );
-            assertEq(
-                vars.userBalancePaymentBefore,
-                vars.userBalancePaymentAfter,
-                "User payment balance remain"
-            );
+            assertEq(vars.priceAfter, vars.priceBefore, "Price remain after failed or 0 amount buy");
+            assertEq(vars.userBalancePaymentBefore, vars.userBalancePaymentAfter, "User payment balance remain");
             assertEq(
                 vars.contractBalancePaymentAfter,
                 vars.contractBalancePaymentBefore,
                 "Sale contract payment balance remain"
             );
+            assertEq(vars.userBalanceSellAfter, vars.userBalanceSellBefore, "User sell token balance remain");
             assertEq(
-                vars.userBalanceSellAfter,
-                vars.userBalanceSellBefore,
-                "User sell token balance remain"
-            );
-            assertEq(
-                vars.contractBalanceSellBefore,
-                vars.contractBalanceSellAfter,
-                "Sale contract sell token balance remain"
+                vars.contractBalanceSellBefore, vars.contractBalanceSellAfter, "Sale contract sell token balance remain"
             );
         }
     }

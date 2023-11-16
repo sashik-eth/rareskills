@@ -93,7 +93,7 @@ contract TokenSaleTest is Test {
     function testRevertIfOwnerDepositLess(uint256 amount) public {
         vm.assume(amount < initAmount);
         TokenSale _sale =
-            new TokenSale(address(mockSellToken), address(mockPaymentToken), initPrice, finalPrice, initAmount, endTimestamp);
+        new TokenSale(address(mockSellToken), address(mockPaymentToken), initPrice, finalPrice, initAmount, endTimestamp);
         deal(address(mockSellToken), address(this), amount);
         mockSellToken.approve(address(_sale), amount);
         vm.expectRevert();

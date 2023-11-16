@@ -6,10 +6,11 @@ import {Token} from "../../../src/Week2/NftStaking/Token.sol";
 import {IERC721Receiver} from "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract User {
-    function proxy(
-        address _target,
-        bytes memory _calldata
-    ) public payable returns (bool success, bytes memory returnData) {
+    function proxy(address _target, bytes memory _calldata)
+        public
+        payable
+        returns (bool success, bytes memory returnData)
+    {
         (success, returnData) = address(_target).call{value: msg.value}(_calldata);
     }
 
@@ -68,12 +69,7 @@ contract Setup {
         require(msg.value == FULL_PRICE);
         if (tokenIds[address(user)] != 0) return;
 
-        user.proxy{value: FULL_PRICE}(
-            address(nft),
-            abi.encodeWithSignature(
-                "mint()"
-            )
-        );
+        user.proxy{value: FULL_PRICE}(address(nft), abi.encodeWithSignature("mint()"));
         tokenIds[address(user)] = nft.tokenId();
     }
 

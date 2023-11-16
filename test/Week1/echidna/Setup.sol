@@ -5,10 +5,7 @@ import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {ERC1363} from "erc1363-payable-token/contracts/token/ERC1363/ERC1363.sol";
 
 contract User {
-    function proxy(
-        address _target,
-        bytes memory _calldata
-    ) public returns (bool success, bytes memory returnData) {
+    function proxy(address _target, bytes memory _calldata) public returns (bool success, bytes memory returnData) {
         (success, returnData) = address(_target).call(_calldata);
     }
 }
@@ -16,7 +13,7 @@ contract User {
 contract MockERC1363 is ERC1363 {
     constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) {}
 
-    function mint(address receiver, uint amount) external {
+    function mint(address receiver, uint256 amount) external {
         _mint(receiver, amount);
     }
 }
@@ -61,7 +58,8 @@ contract Setup {
     function _deploy() internal {
         mockSellToken = new MockERC1363("Mock Sell Token", "MST");
         mockPaymentToken = new MockERC1363("Mock Payment Token", "MPT");
-        sale = new TokenSale(address(mockSellToken), address(mockPaymentToken), initPrice, finalPrice, initAmount, endTimestamp);
+        sale =
+        new TokenSale(address(mockSellToken), address(mockPaymentToken), initPrice, finalPrice, initAmount, endTimestamp);
 
         mockSellToken.mint(address(this), initAmount);
         mockSellToken.approve(address(sale), initAmount);
@@ -75,11 +73,7 @@ contract Setup {
 
         user.proxy(
             address(mockPaymentToken),
-            abi.encodeWithSelector(
-                mockPaymentToken.approve.selector,
-                address(sale),
-                type(uint256).max
-            )
+            abi.encodeWithSelector(mockPaymentToken.approve.selector, address(sale), type(uint256).max)
         );
         completePayment = true;
     }
@@ -90,11 +84,7 @@ contract Setup {
         mockSellToken.mint(address(user), amount);
         user.proxy(
             address(mockSellToken),
-            abi.encodeWithSelector(
-                mockSellToken.approve.selector,
-                address(sale),
-                type(uint256).max
-            )
+            abi.encodeWithSelector(mockSellToken.approve.selector, address(sale), type(uint256).max)
         );
 
         completeSell = true;

@@ -37,6 +37,13 @@ contract AmmTest is Test, IERC3156FlashBorrower {
         _pair = Pair(factory.createPair(tokenA, tokenB));
     }
 
+    function testCreatePairRevert(address tokenA, address tokenB) public {
+        Pair pair = testCreatePair(tokenA, tokenB);
+        require(address(pair) != address(0));
+        vm.expectRevert(Factory.PairExist.selector);
+        Pair(factory.createPair(tokenA, tokenB));
+    }
+
     function testCreatePairNoCollision(address tokenA, address tokenB, address tokenC) public {
         vm.assume(tokenA != tokenB);
         vm.assume(tokenA != tokenC);
